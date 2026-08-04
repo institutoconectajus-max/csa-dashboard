@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CSA — Painel de Alunos</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:   #2e7d52;
+      --green-bg:#e8f5ee;
+      --yellow:  #e65100;
+      --yellow-bg:#fff3e0;
+      --red:     #c62828;
+      --red-bg:  #ffebee;
+      --gray:    #5f6368;
+      --border:  #e0e0e0;
+      --surface: #f8f9fa;
+      --white:   #ffffff;
+      --text:    #1a1a1a;
+      --muted:   #757575;
+      --radius:  8px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--surface);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .topbar {
+      background: #1a3a2a;
+      padding: 0 2rem;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .topbar-logo {
+      color: #4caf7d;
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: 0.5px;
+    }
+    .topbar-title {
+      color: rgba(255,255,255,0.85);
+      font-size: 14px;
+    }
+    .topbar-sep { flex: 1; }
+    .sync-btn {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: var(--radius);
+      color: rgba(255,255,255,0.85);
+      font-size: 13px;
+      padding: 6px 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s;
+    }
+    .sync-btn:hover { background: rgba(255,255,255,0.18); }
+    .sync-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .last-sync { color: rgba(255,255,255,0.5); font-size: 11px; }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 2rem;
+    }
+    @media (max-width: 640px) {
+      .cards-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .card {
+      background: var(--white);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 1.25rem;
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .card.clickable { cursor: pointer; }
+    .card.clickable:hover {
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      border-color: #bdbdbd;
+    }
+    .card-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot-g { background: var(--green); }
+    .dot-r { background: var(--red); }
+    .dot-y { background: var(--yellow); }
+    .dot-z { background: #bdbdbd; }
+    .card-num { font-size: 36px; font-weight: 600; line-height: 1; color: var(--text); }
+    .card-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+    .section { margin-bottom: 2rem; }
+    .section-header {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .alert-list { display: flex; flex-direction: column; gap: 6px; }
+    .alert-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-left: 4px solid transparent;
+    }
+    .alert-item.red  { border-left-color: var(--red);    background: var(--red-bg); }
+    .alert-item.yellow { border-left-color: var(--yellow); background: var(--yellow-bg); }
+    .alert-nome { font-size: 14px; font-weight: 500; flex: 1; }
+    .alert-turma { font-size: 12px; color: var(--muted); }
+    .alert-right { text-align: right; flex-shrink: 0; }
+
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 99px;
+    }
+    .badge-red    { background: rgba(198,40,40,0.12); color: var(--red); }
+    .badge-yellow { background: rgba(230,81,0,0.12);  color: var(--yellow); }
+    .badge-green  { background: rgba(46,125,82,0.12); color: var(--green); }
+    .badge-date { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    .barra-wrap {
+      background: var(--white);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 1.25rem;
+    }
+    .barra {
+      display: flex;
+      border-radius: 6px;
+      overflow: hidden;
+      height: 20px;
+      margin-bottom: 10px;
+    }
+    .legend-row { display: flex; gap: 20px; flex-wrap: wrap; }
+    .legend-item { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+
+    .empty-msg {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-size: 14px;
+      background: var(--white);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+    .error-box {
+      background: var(--red-bg);
+      border: 1px solid rgba(198,40,40,0.3);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      text-align: center;
+      color: var(--red);
+      font-size: 14px;
+    }
+
+    /* MODAL */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 100;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 60px 16px 16px;
+      backdrop-filter: blur(2px);
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--white);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      width: 100%;
+      max-width: 560px;
+      max-height: 78vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+      overflow: hidden;
+    }
+    .modal-head {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .modal-head h2 { font-size: 15px; font-weight: 600; }
+    .modal-close {
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: 24px; line-height: 1; padding: 0;
+    }
+    .modal-search {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .modal-search input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px 12px;
+      font-size: 14px;
+      outline: none;
+      background: var(--surface);
+    }
+    .modal-search input:focus { border-color: var(--green); }
+    .tab-bar {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      background: var(--surface);
+    }
+    .tab {
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--muted);
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      background: none;
+      transition: color 0.15s;
+    }
+    .tab.on { color: var(--green); border-bottom-color: var(--green); }
+    .modal-body { overflow-y: auto; flex: 1; }
+    .mrow {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 20px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+    }
+    .mrow:last-child { border-bottom: none; }
+    .mrow:hover { background: var(--surface); }
+    .mrow-name { font-size: 14px; font-weight: 500; flex: 1; }
+    .mrow-turma { font-size: 12px; color: var(--muted); }
+    .mrow-right { text-align: right; flex-shrink: 0; }
+    .mrow-date { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { display: inline-block; animation: spin 1s linear infinite; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-logo">CSA</span>
+  <span class="topbar-title">Painel de Alunos</span>
+  <div class="topbar-sep"></div>
+  <span class="last-sync" id="lastSync"></span>
+  <button class="sync-btn" id="syncBtn" onclick="loadData()">
+    <span id="syncIcon">↻</span> Atualizar
+  </button>
+</div>
+
+<div class="container">
+
+  <div class="cards-grid">
+    <div class="card clickable" onclick="openModal('ativos')">
+      <div class="card-label"><span class="dot dot-g"></span>Ativos</div>
+      <div class="card-num" id="nAtivos">—</div>
+      <div class="card-sub">Clique para ver lista</div>
+    </div>
+    <div class="card clickable" onclick="openModal('inativos')">
+      <div class="card-label"><span class="dot dot-r"></span>Vencidos</div>
+      <div class="card-num" id="nInativos">—</div>
+      <div class="card-sub">Clique para ver lista</div>
+    </div>
+    <div class="card clickable" onclick="openModal('vencendo')">
+      <div class="card-label"><span class="dot dot-y"></span>Vencem em 7 dias</div>
+      <div class="card-num" id="nVencendo">—</div>
+      <div class="card-sub">Clique para ver lista</div>
+    </div>
+    <div class="card">
+      <div class="card-label"><span class="dot dot-z"></span>Total</div>
+      <div class="card-num" id="nTotal">—</div>
+      <div class="card-sub">na base de dados</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">⚠ Alertas — vencem nos próximos 7 dias</div>
+    <div id="alertList"><div class="empty-msg">Carregando...</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">◼ Distribuição por prazo de acesso</div>
+    <div class="barra-wrap">
+      <div class="barra" id="barra"></div>
+      <div class="legend-row" id="legend"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeBg(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h2 id="mTitle">Alunos</h2>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-search">
+      <input type="text" id="srch" placeholder="Buscar por nome..." oninput="renderModal()" />
+    </div>
+    <div class="tab-bar" id="tabBar" style="display:none">
+      <button class="tab on" onclick="setTab('vermelho',this)">🔴 Críticos</button>
+      <button class="tab" onclick="setTab('amarelo',this)">🟡 Atenção</button>
+      <button class="tab" onclick="setTab('verde',this)">🟢 OK</button>
+      <button class="tab" onclick="setTab('todos',this)">Todos</button>
+    </div>
+    <div class="modal-body" id="mBody"></div>
+  </div>
+</div>
+
+<script>
+  const HOJE = new Date(); HOJE.setHours(0,0,0,0);
+  const EM7  = new Date(HOJE); EM7.setDate(HOJE.getDate() + 7);
+
+  let allData = [], currentModal = '', currentTab = 'vermelho';
+
+  function dias(s) {
+    if (!s) return -9999;
+    const v = new Date(s); v.setHours(0,0,0,0);
+    return Math.round((v - HOJE) / 86400000);
+  }
+  function cor(d) { return d <= 31 ? 'vermelho' : d <= 60 ? 'amarelo' : 'verde'; }
+  function fmt(s) {
+    if (!s) return '—';
+    const [y, m, d] = s.split('-');
+    return `${d}/${m}/${y}`;
+  }
+  function isAtivo(a) {
+    if (!a.ativo) return false;
+    const d = new Date(a.acesso_ate); d.setHours(0,0,0,0);
+    return d >= HOJE;
+  }
+
+  async function loadData() {
+    const btn  = document.getElementById('syncBtn');
+    const icon = document.getElementById('syncIcon');
+    btn.disabled = true;
+    icon.classList.add('spin');
+    icon.textContent = '↻';
+
+    try {
+      const res = await fetch('/api/alunos');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      allData = await res.json();
+      render();
+      document.getElementById('lastSync').textContent =
+        'Atualizado ' + new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+    } catch (e) {
+      document.getElementById('alertList').innerHTML =
+        `<div class="error-box">Erro ao carregar dados: ${e.message}</div>`;
+    } finally {
+      btn.disabled = false;
+      icon.classList.remove('spin');
+    }
+  }
+
+  function render() {
+    const ativos   = allData.filter(a => isAtivo(a));
+    const inativos = allData.filter(a => !isAtivo(a));
+    const vencendo = ativos.filter(a => {
+      const d = new Date(a.acesso_ate); d.setHours(0,0,0,0); return d <= EM7;
+    });
+
+    document.getElementById('nAtivos').textContent   = ativos.length;
+    document.getElementById('nInativos').textContent = inativos.length;
+    document.getElementById('nVencendo').textContent = vencendo.length;
+    document.getElementById('nTotal').textContent    = allData.length;
+
+    const verde    = ativos.filter(a => cor(dias(a.acesso_ate)) === 'verde').length;
+    const amarelo  = ativos.filter(a => cor(dias(a.acesso_ate)) === 'amarelo').length;
+    const vermelho = ativos.filter(a => cor(dias(a.acesso_ate)) === 'vermelho').length;
+
+    document.getElementById('barra').innerHTML =
+      `<div style="flex:${verde};background:#2e7d52"></div>` +
+      `<div style="flex:${amarelo};background:#e65100"></div>` +
+      `<div style="flex:${vermelho};background:#c62828"></div>`;
+
+    document.getElementById('legend').innerHTML =
+      `<span class="legend-item"><span class="dot dot-g"></span>${verde} com 9+ meses</span>` +
+      `<span class="legend-item"><span class="dot dot-y"></span>${amarelo} com até 2 meses</span>` +
+      `<span class="legend-item"><span class="dot dot-r"></span>${vermelho} com até 1 mês</span>`;
+
+    const sorted = [...vencendo].sort((a, b) => new Date(a.acesso_ate) - new Date(b.acesso_ate));
+    if (!sorted.length) {
+      document.getElementById('alertList').innerHTML =
+        '<div class="empty-msg">✓ Nenhum aluno vencendo nos próximos 7 dias.</div>';
+    } else {
+      document.getElementById('alertList').innerHTML = sorted.map(a => {
+        const d = dias(a.acesso_ate);
+        const cls = d <= 0 ? 'red' : 'yellow';
+        const lbl = d < 0 ? `Vencido há ${Math.abs(d)}d` : d === 0 ? 'Vence hoje' : `${d} dia${d > 1 ? 's' : ''}`;
+        return `<div class="alert-item ${cls}">
+          <span class="dot ${cls === 'red' ? 'dot-r' : 'dot-y'}"></span>
+          <div>
+            <div class="alert-nome">${a.nome}</div>
+            <div class="alert-turma">${a.turma || ''}</div>
+          </div>
+          <div class="alert-right">
+            <span class="badge ${cls === 'red' ? 'badge-red' : 'badge-yellow'}">${lbl}</span>
+            <div class="badge-date">${fmt(a.acesso_ate)}</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  function openModal(tipo) {
+    currentModal = tipo;
+    currentTab   = tipo === 'ativos' ? 'vermelho' : 'todos';
+    document.getElementById('srch').value = '';
+    const titles = { ativos: 'Alunos com acesso ativo', inativos: 'Acesso vencido', vencendo: 'Vencem nos próximos 7 dias' };
+    document.getElementById('mTitle').textContent = titles[tipo];
+    const tb = document.getElementById('tabBar');
+    tb.style.display = tipo === 'ativos' ? 'flex' : 'none';
+    if (tipo === 'ativos') {
+      tb.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('on', i === 0));
+      currentTab = 'vermelho';
+    }
+    document.getElementById('modalOverlay').classList.add('open');
+    renderModal();
+  }
+  function closeBg(e) { if (e.target === document.getElementById('modalOverlay')) closeModal(); }
+  function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+  function setTab(tab, el) {
+    currentTab = tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+    el.classList.add('on');
+    renderModal();
+  }
+
+  function renderModal() {
+    const q = document.getElementById('srch').value.toLowerCase();
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const em7  = new Date(hoje); em7.setDate(hoje.getDate() + 7);
+    let list;
+    if (currentModal === 'ativos') {
+      list = allData.filter(a => isAtivo(a));
+      if (currentTab !== 'todos') list = list.filter(a => cor(dias(a.acesso_ate)) === currentTab);
+    } else if (currentModal === 'inativos') {
+      list = allData.filter(a => !isAtivo(a));
+    } else {
+      list = allData.filter(a => {
+        if (!isAtivo(a)) return false;
+        const d = new Date(a.acesso_ate); d.setHours(0,0,0,0); return d <= em7;
+      });
+    }
+    if (q) list = list.filter(a => a.nome.toLowerCase().includes(q));
+    list.sort((a, b) => new Date(a.acesso_ate) - new Date(b.acesso_ate));
+
+    const titles = { ativos: 'Alunos com acesso ativo', inativos: 'Acesso vencido', vencendo: 'Vencem nos próximos 7 dias' };
+    document.getElementById('mTitle').textContent = `${titles[currentModal]} (${list.length})`;
+
+    const body = document.getElementById('mBody');
+    if (!list.length) { body.innerHTML = '<div class="empty-msg">Nenhum aluno encontrado.</div>'; return; }
+
+    body.innerHTML = list.map(a => {
+      const d  = dias(a.acesso_ate);
+      const c  = cor(d);
+      const dc = c === 'verde' ? 'dot-g' : c === 'amarelo' ? 'dot-y' : 'dot-r';
+      let badge = '';
+      if (c === 'vermelho') badge = `<span class="badge badge-red">${d <= 0 ? 'Vencido' : `${d}d`}</span>`;
+      if (c === 'amarelo')  badge = `<span class="badge badge-yellow">${d}d</span>`;
+      if (c === 'verde')    badge = `<span class="badge badge-green">${Math.round(d/30)}m</span>`;
+      return `<div class="mrow">
+        <span class="dot ${dc}"></span>
+        <div style="flex:1;min-width:0">
+          <div class="mrow-name">${a.nome}</div>
+          <div class="mrow-turma">${a.turma || ''}</div>
+        </div>
+        <div class="mrow-right">${badge}<div class="mrow-date">${fmt(a.acesso_ate)}</div></div>
+      </div>`;
+    }).join('');
+  }
+
+  loadData();
+</script>
+</body>
+</html>
